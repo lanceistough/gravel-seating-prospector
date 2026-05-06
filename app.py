@@ -1421,6 +1421,9 @@ loadProspects();
 
 # ── Bootstrap ──────────────────────────────────────────────────────────────────
 
+# Always initialize the DB — runs under both gunicorn and direct python
+init_db()
+
 if __name__ == "__main__":
     import webbrowser
     init_db()
