@@ -1438,7 +1438,9 @@ if __name__ == "__main__":
     else:
         print(f"Users: {count}  |  Prospects: {prospect_count}")
 
-    print("Opening at http://localhost:5001")
+    port = int(os.environ.get("PORT", 5001))
+    print(f"Opening at http://localhost:{port}")
     print("Press Ctrl+C to stop\\n")
-    webbrowser.open("http://localhost:5001")
-    app.run(debug=False, port=5001)
+    if port == 5001:
+        webbrowser.open(f"http://localhost:{port}")
+    app.run(debug=False, host="0.0.0.0", port=port)
