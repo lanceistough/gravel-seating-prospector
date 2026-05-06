@@ -1,0 +1,101 @@
+# Gravel Seating Prospector — Config
+# Edit these before running
+
+# Lookalike brands to target
+# Used to build hashtag searches: #arcteryx, #rains, etc.
+# Script strips "official" and underscores automatically.
+#
+# PROVEN (produced liked accounts in previous scrapes):
+#   mammut(15) outdoorresearch(13) salomon(13) rab.equipment(8)
+#   keen(5) polartecfabric(5) satisfyrunning(2) merrell(2)
+#   goretexstudio(2) on(2) mountainhardwear(1) metalwoodstudio(1) acgdaily(1)
+#
+# NEW (similar audience — outdoor athletes, adventure creators, photographers):
+
+target_brands:
+  # Proven performers — keep all
+  - mammut
+  - outdoorresearch
+  - salomon
+  - rab.equipment
+  - keen
+  - polartecfabric
+  - satisfyrunning
+  - merrell
+  - goretexstudio
+  - "on"
+  - mountainhardwear
+  - metalwoodstudio
+  - acgdaily
+  - arcteryx
+
+  # New — premium outdoor/mountain brands (same creator audience)
+  - thenorthface
+  - patagonia
+  - blackdiamondequipment
+  - norrona
+  - marmot
+  - haglofs
+  - fjallraven
+
+  # New — technical footwear (similar to keen/merrell buyers)
+  - scarpa
+  - lasportiva
+  - lowa_boots
+
+  # New — outdoor athletes + content creators congregate here
+  - suunto
+  - redbull          # adventure athletes / film-makers
+  - natgeotravel     # photographers + explorers
+  - cotopaxi         # sustainability-forward outdoor creators
+  - icebreaker       # merino/outdoor lifestyle
+  - osprey           # backpacking / adventure creators
+
+# Follower range filter
+min_followers: 300
+max_followers: 999999999
+
+# Minimum engagement rate (likes+comments / followers)
+min_engagement_rate: 0.02   # 2%
+
+# Bio keywords that indicate a good fit — based on analysis of 70 liked accounts
+# Old weak keywords removed: pack, wanderlust, field, nomad, gear
+bio_keywords:
+  # Activity keywords (high signal from liked bios)
+  - adventure
+  - outdoor
+  - outdoors
+  - hike
+  - hiking
+  - trail
+  - mountain
+  - mountains
+  - climbing
+  - climber
+  - running
+  - runner
+  - backcountry
+  - explore
+  - camp
+  - camping
+  - travel
+
+  # Creator type keywords (strong signal in 4/5-rated bios)
+  - photographer
+  - filmmaker
+  - film
+  - creator
+  - athlete
+  - director
+  - storyteller
+
+# Output Google Sheet name (will be created if it doesn't exist)
+google_sheet_name: "Gravel Seating Prospects"
+
+# How many hashtag posts to pull per brand (Apify cost control)
+# 200 posts = ~200 unique accounts to enrich per brand
+posts_per_brand: 200
+
+# Apify Actor IDs (don't change unless Apify updates them)
+apify_instagram_post_actor: "apify/instagram-scraper"
+apify_instagram_profile_actor: "apify/instagram-profile-scraper"
