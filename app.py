@@ -425,6 +425,30 @@ def api_remove_user():
     return jsonify({"ok": True})
 
 
+@app.route("/admin/import-db", methods=["GET","POST"])
+def admin_import_db():
+    """One-time endpoint to upload local DB to Railway. Protected by IMPORT_SECRET env var."""
+    secret = os.environ.get("IMPORT_SECRET", "")
+    if not secret:
+        return "IMPORT_SECRET not set", 403
+    if request.method == "GET":
+        return f'''<html><body style="font-family:sans-serif;padding:40px">
+            <h2>Upload Database</h2>
+            <form method="post" enctype="multipart/form-data">
+                <input name="secret" type="password" placeholder="Secret" style="padding:8px;margin-bottom:12px;display:block;width:300px">
+                <input name="db" type="file" accept=".db" style="margin-bottom:12px;display:block">
+                <button type="submit" style="padding:10px 24px;background:#111;color:white;border:none;border-radius:6px;cursor:pointer">Upload</button>
+            </form></body></html>'''
+    if request.form.get("secret") != secret:
+        return "Wrong secret", 403
+    f = request.files.get("db")
+    if not f:
+        return "No file", 400
+    Path("data").mkdir(exist_ok=True)
+    f.save(DB_PATH)
+    return "<h2 style='font-family:sans-serif;padding:40px'>✅ Database uploaded! <a href='/'>Go to app</a></h2>"
+
+
 # ── HTML Templates ─────────────────────────────────────────────────────────────
 
 LOGIN_HTML = """<!DOCTYPE html>
