@@ -83,6 +83,14 @@ def init_db():
             posted_about_gravel TEXT DEFAULT '',
             updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+        CREATE TABLE IF NOT EXISTS invitations (
+            id          INTEGER PRIMARY KEY,
+            email       TEXT NOT NULL,
+            token       TEXT UNIQUE NOT NULL,
+            invited_by  INTEGER REFERENCES users(id),
+            created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            accepted_at TIMESTAMP
+        );
     """)
     # Migrate old ratings table if it has the old schema (prospect_id UNIQUE only)
     cols = [r[1] for r in db.execute("PRAGMA table_info(ratings)").fetchall()]
@@ -396,21 +404,56 @@ def api_users():
     users = db.execute("SELECT id, name, email, created_at FROM users ORDER BY created_at").fetchall()
     return jsonify([dict(u) for u in users])
 
-@app.route("/api/add_user", methods=["POST"])
+@app.route("/api/invite_user", methods=["POST"])
 @login_required
-def api_add_user():
+def api_invite_user():
     data  = request.json
-    name  = data.get("name","").strip()
     email = data.get("email","").strip().lower()
-    pw    = data.get("password","")
-    db    = get_db()
-    try:
-        db.execute("INSERT INTO users (name,email,password_hash) VALUES (?,?,?)",
-                   [name, email, hash_pw(pw)])
-        db.commit()
-        return jsonify({"ok": True})
-    except sqlite3.IntegrityError:
-        return jsonify({"ok": False, "error": "Email already exists"}), 400
+    if not email:
+        return jsonify({"ok": False, "error": "Email required"}), 400
+    db = get_db()
+    # Don't invite someone already on the team
+    existing = db.execute("SELECT id FROM users WHERE email=?", [email]).fetchone()
+    if existing:
+        return jsonify({"ok": False, "error": "That email is already on the team"}), 400
+    token = secrets.token_urlsafe(32)
+    db.execute("INSERT INTO invitations (email, token, invited_by) VALUES (?,?,?)",
+               [email, token, session["user_id"]])
+    db.commit()
+    base = request.host_url.rstrip("/")
+    invite_url = f"{base}/invite/{token}"
+    return jsonify({"ok": True, "invite_url": invite_url})
+
+@app.route("/invite/<token>", methods=["GET","POST"])
+def accept_invite(token):
+    db = get_db()
+    invite = db.execute(
+        "SELECT * FROM invitations WHERE token=? AND accepted_at IS NULL", [token]
+    ).fetchone()
+    if not invite:
+        return render_template_string(INVITE_INVALID_HTML)
+    if request.method == "POST":
+        name = request.form.get("name","").strip()
+        pw   = request.form.get("password","")
+        pw2  = request.form.get("password2","")
+        error = None
+        if not pw or len(pw) < 6:
+            error = "Password must be at least 6 characters."
+        elif pw != pw2:
+            error = "Passwords don't match."
+        if not error:
+            try:
+                db.execute("INSERT INTO users (name,email,password_hash) VALUES (?,?,?)",
+                           [name, invite["email"], hash_pw(pw)])
+                db.execute("UPDATE invitations SET accepted_at=CURRENT_TIMESTAMP WHERE token=?", [token])
+                db.commit()
+                user = db.execute("SELECT * FROM users WHERE email=?", [invite["email"]]).fetchone()
+                session["user_id"] = user["id"]
+                return redirect(url_for("index"))
+            except sqlite3.IntegrityError:
+                error = "That email is already registered."
+        return render_template_string(INVITE_HTML, email=invite["email"], error=error)
+    return render_template_string(INVITE_HTML, email=invite["email"], error=None)
 
 @app.route("/api/remove_user", methods=["POST"])
 @login_required
@@ -450,6 +493,64 @@ def admin_import_db():
 
 
 # ── HTML Templates ─────────────────────────────────────────────────────────────
+
+INVITE_HTML = """<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Join the team</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+     background:#f5f5f5;display:flex;align-items:center;justify-content:center;
+     min-height:100vh;padding:24px}
+.card{background:white;border-radius:16px;padding:40px;width:100%;max-width:400px;
+      box-shadow:0 4px 24px rgba(0,0,0,.08)}
+h1{font-size:22px;font-weight:700;margin-bottom:6px}
+.sub{font-size:14px;color:#888;margin-bottom:28px}
+.email-badge{background:#f0f4ff;color:#3355aa;font-size:13px;font-weight:600;
+             padding:6px 12px;border-radius:6px;display:inline-block;margin-bottom:24px}
+label{font-size:12px;font-weight:600;color:#555;text-transform:uppercase;
+      letter-spacing:.4px;display:block;margin-bottom:4px}
+input{width:100%;padding:11px 14px;border:1.5px solid #e0e0e0;border-radius:8px;
+      font-size:15px;outline:none;margin-bottom:14px}
+input:focus{border-color:#111}
+.btn{width:100%;padding:12px;background:#111;color:white;border:none;
+     border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px}
+.btn:hover{background:#333}
+.error{color:#dc2626;font-size:13px;margin-bottom:14px}
+</style></head>
+<body><div class="card">
+  <h1>You're invited 🎉</h1>
+  <p class="sub">Set up your account to get started.</p>
+  <div class="email-badge">{{ email }}</div>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="post">
+    <label>Your name</label>
+    <input name="name" type="text" placeholder="First Last" autocomplete="name">
+    <label>Password</label>
+    <input name="password" type="password" placeholder="At least 6 characters" autocomplete="new-password">
+    <label>Confirm password</label>
+    <input name="password2" type="password" placeholder="Repeat password" autocomplete="new-password">
+    <button class="btn" type="submit">Create account &amp; sign in</button>
+  </form>
+</div></body></html>
+"""
+
+INVITE_INVALID_HTML = """<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>Invalid invite</title>
+<style>
+body{font-family:-apple-system,sans-serif;display:flex;align-items:center;
+     justify-content:center;min-height:100vh;background:#f5f5f5}
+.card{background:white;border-radius:16px;padding:40px;text-align:center;
+      max-width:380px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+h1{font-size:20px;margin-bottom:10px}
+p{color:#888;font-size:14px;margin-bottom:20px}
+a{color:#111;font-weight:600}
+</style></head>
+<body><div class="card">
+  <h1>Invite not found</h1>
+  <p>This invite link has already been used or is invalid.</p>
+  <a href="/login">← Go to login</a>
+</div></body></html>
+"""
 
 LOGIN_HTML = """<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>Gravel — Login</title>
@@ -811,14 +912,28 @@ tr:hover td{background:#fafafa}
     <div class="settings-desc">People who can log in and review prospects.</div>
     <div id="team-list" style="margin-bottom:16px"></div>
     <div style="border-top:1px solid #f0f0f0;padding-top:16px">
-      <div style="font-size:13px;font-weight:600;color:#444;margin-bottom:12px">Add teammate</div>
+      <div style="font-size:13px;font-weight:600;color:#444;margin-bottom:12px">Invite a teammate</div>
       <div style="display:flex;flex-direction:column;gap:10px;max-width:360px">
-        <input id="new-name"  type="text"     placeholder="Name" style="padding:9px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none">
-        <input id="new-email" type="email"    placeholder="Email" style="padding:9px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none">
-        <input id="new-pw"    type="password" placeholder="Password" style="padding:9px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none">
+        <input id="new-email" type="email" placeholder="their@email.com"
+               style="padding:9px 12px;border:1.5px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none">
         <div style="display:flex;align-items:center;gap:12px">
-          <button class="add-btn" onclick="addTeammate()">Add to team</button>
+          <button class="add-btn" onclick="inviteTeammate()">Send invite</button>
           <span id="team-msg" style="font-size:13px;color:#888"></span>
+        </div>
+        <div id="invite-link-box" style="display:none;background:#f0f4ff;border-radius:8px;padding:12px">
+          <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px">
+            📋 Copy this link and send it to them:
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="invite-link" type="text" readonly
+                   style="flex:1;padding:7px 10px;border:1.5px solid #c0cce8;border-radius:6px;
+                          font-size:12px;background:white;color:#111;outline:none">
+            <button onclick="copyInviteLink()"
+                    style="padding:7px 12px;background:#111;color:white;border:none;
+                           border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap">
+              Copy
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -957,29 +1072,38 @@ async function loadTeam() {
     </div>`).join('');
 }
 
-async function addTeammate() {
-  const name  = document.getElementById('new-name').value.trim();
+async function inviteTeammate() {
   const email = document.getElementById('new-email').value.trim();
-  const pw    = document.getElementById('new-pw').value;
   const msg   = document.getElementById('team-msg');
-  if (!email || !pw) { msg.textContent = 'Email and password required.'; return; }
-  msg.textContent = 'Adding…';
-  const res = await fetch('/api/add_user', {method:'POST',
+  const linkBox = document.getElementById('invite-link-box');
+  if (!email) { msg.textContent = 'Enter an email address.'; return; }
+  msg.style.color = '#888';
+  msg.textContent = 'Generating invite…';
+  linkBox.style.display = 'none';
+  const res = await fetch('/api/invite_user', {method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({name, email, password: pw})});
+    body: JSON.stringify({email})});
   const data = await res.json();
   if (data.ok) {
-    msg.style.color = '#16a34a';
-    msg.textContent = `${name || email} added!`;
-    document.getElementById('new-name').value = '';
+    msg.textContent = '';
     document.getElementById('new-email').value = '';
-    document.getElementById('new-pw').value = '';
-    loadTeam();
-    setTimeout(() => { msg.textContent=''; msg.style.color='#888'; }, 3000);
+    document.getElementById('invite-link').value = data.invite_url;
+    linkBox.style.display = 'block';
   } else {
     msg.style.color = '#dc2626';
-    msg.textContent = data.error || 'Could not add user.';
+    msg.textContent = data.error || 'Could not create invite.';
   }
+}
+
+function copyInviteLink() {
+  const input = document.getElementById('invite-link');
+  input.select();
+  navigator.clipboard.writeText(input.value).then(() => {
+    const btn = input.nextElementSibling;
+    btn.textContent = 'Copied!';
+    btn.style.background = '#16a34a';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.background = '#111'; }, 2000);
+  });
 }
 
 async function removeTeammate(id, label) {
