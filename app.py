@@ -553,7 +553,7 @@ a{color:#111;font-weight:600}
 """
 
 LOGIN_HTML = """<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Gravel — Login</title>
+<html><head><meta charset="UTF-8"><title>Product Seeding — Login</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
@@ -574,7 +574,7 @@ button:hover{background:#333}
 .link a{color:#0066cc;text-decoration:none}
 </style></head><body>
 <div class="card">
-  <h1>Gravel Prospects</h1>
+  <img src="/static/logo.png" alt="Product Seeding" style="height:32px;width:auto;display:block;margin-bottom:20px">
   <p class="sub">Sign in to your account</p>
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
   <form method="POST">
@@ -589,7 +589,7 @@ button:hover{background:#333}
 </body></html>"""
 
 REGISTER_HTML = """<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>Gravel — Create Account</title>
+<html><head><meta charset="UTF-8"><title>Product Seeding — Create Account</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
@@ -610,8 +610,8 @@ button:hover{background:#333}
 .link a{color:#0066cc;text-decoration:none}
 </style></head><body>
 <div class="card">
-  <h1>Create Account</h1>
-  <p class="sub">{% if first_run %}Set up your Gravel workspace{% else %}Add a team member{% endif %}</p>
+  <img src="/static/logo.png" alt="Product Seeding" style="height:32px;width:auto;display:block;margin-bottom:20px">
+  <p class="sub">{% if first_run %}Set up your workspace{% else %}Create your account{% endif %}</p>
   {% if error %}<div class="error">{{ error }}</div>{% endif %}
   <form method="POST">
     <label>Name</label>
@@ -632,7 +632,7 @@ APP_HTML = """<!DOCTYPE html>
 <html><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gravel Prospects</title>
+<title>Product Seeding</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f5;min-height:100vh}
@@ -641,7 +641,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #header{position:fixed;top:0;left:0;right:0;height:56px;background:white;
         border-bottom:1px solid #e8e8e8;display:flex;align-items:center;
         padding:0 24px;gap:24px;z-index:200}
-#header h1{font-size:17px;font-weight:700;color:#111;margin-right:8px}
+#header .logo{height:28px;width:auto;margin-right:8px;display:block}
 .tab-btn{padding:6px 16px;border-radius:20px;border:none;background:none;
          font-size:14px;font-weight:500;cursor:pointer;color:#888}
 .tab-btn.active{background:#111;color:white}
@@ -776,7 +776,7 @@ tr:hover td{background:#fafafa}
 </head><body>
 
 <div id="header">
-  <h1>Gravel</h1>
+  <img src="/static/logo.png" class="logo" alt="Product Seeding">
   <button class="tab-btn {% if tab=='discover' %}active{% endif %}" onclick="showTab('discover')">Discover</button>
   <button class="tab-btn {% if tab=='reviewed' %}active{% endif %}" onclick="showTab('reviewed')">Reviewed</button>
   <button class="tab-btn {% if tab=='settings' %}active{% endif %}" onclick="showTab('settings')">Settings</button>
