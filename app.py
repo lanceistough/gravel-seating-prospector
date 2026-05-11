@@ -134,6 +134,10 @@ def login_required(f):
     def wrapped(*a, **kw):
         if "user_id" not in session:
             return redirect(url_for("login"))
+        # If session exists but user was wiped (e.g. DB reset), clear and re-login
+        if current_user() is None:
+            session.clear()
+            return redirect(url_for("login"))
         return f(*a, **kw)
     return wrapped
 
