@@ -1493,13 +1493,12 @@ function renderTable() {
     const avg = r.avg_rating || 0;
     const avgColor = avg>=4?'#16a34a':avg>=2?'#f59e0b':'#aaa';
 
-    // Build tooltip showing each person's score
-    const tooltipLines = reviewedUsers.map(u => {
+    const tooltipHtml = reviewedUsers.map(function(u) {
       const val = (r.ratings && r.ratings[u.id]) || null;
       const name = u.name || u.email.split('@')[0];
       const stars = val ? '★'.repeat(val) + '☆'.repeat(5-val) : '—';
-      return `${name}: ${stars}`;
-    }).join('&#10;');
+      return '<div><span style="color:#ccc;font-size:11px">' + name + '</span> <span style="color:#fff">' + stars + '</span></div>';
+    }).join('');
 
     const statuses = ['', ...(configData.outreach_statuses || [])];
     const statusOpts = statuses.map(s=>`<option ${r.outreach_status===s?'selected':''}>${s}</option>`).join('');
@@ -1513,12 +1512,7 @@ function renderTable() {
       <td>
         <div class="avg-rating-cell" style="position:relative;display:inline-block">
           <span style="font-weight:700;color:${avgColor};cursor:default">${avg}</span>
-          <div class="avg-tooltip">${reviewedUsers.map(u => {
-            const val = (r.ratings && r.ratings[u.id]) || null;
-            const name = u.name || u.email.split('@')[0];
-            const stars = val ? '★'.repeat(val) + '☆'.repeat(5-val) : '—';
-            return `<div><span style="color:#ccc;font-size:11px">${name}</span> <span style="color:#fff">${stars}</span></div>`;
-          }).join('')}</div>
+          <div class="avg-tooltip">${tooltipHtml}</div>
         </div>
       </td>
       <td class="t-status">
