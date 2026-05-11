@@ -1371,15 +1371,19 @@ async function rate(value) {
   fetch('/api/rate', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({username: p.username, rating: value})});
 
-  // Close the current window immediately — must happen inside the click handler
-  closeProfileWindow();
-
   const next = allProspects[current + 1];
   if (next) {
-    // Open fresh window for next profile — still inside click handler so no popup blocker
-    const igW=680, igH=window.screen.height, igLeft=window.screen.width-680;
-    profileWindow = window.open(next.profile_url, 'gravel_ig',
-      `width=${igW},height=${igH},left=${igLeft},top=0,scrollbars=yes,resizable=yes`);
+    // Navigate the existing window to the next profile — keeps only one window open
+    if (profileWindow && !profileWindow.closed) {
+      profileWindow.location.href = next.profile_url;
+    } else {
+      const igW=680, igH=window.screen.height, igLeft=window.screen.width-680;
+      profileWindow = window.open(next.profile_url, 'gravel_ig',
+        `width=${igW},height=${igH},left=${igLeft},top=0,scrollbars=yes,resizable=yes`);
+    }
+  } else {
+    // Last profile — close the window
+    closeProfileWindow();
   }
 
   const card = document.querySelector('.card');
