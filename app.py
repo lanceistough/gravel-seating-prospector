@@ -718,6 +718,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 #reviewed{display:none;padding:80px 24px 40px}
 .reviewed-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
 .reviewed-header h2{font-size:20px;font-weight:700}
+.avg-rating-cell .avg-tooltip{
+  display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  background:#222;border-radius:8px;padding:8px 12px;white-space:nowrap;
+  font-size:12px;line-height:1.8;z-index:100;
+  box-shadow:0 4px 12px rgba(0,0,0,.3);pointer-events:none}
+.avg-rating-cell:hover .avg-tooltip{display:block}
 .reviewed-meta{font-size:13px;color:#888}
 .table-wrap{background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.07);overflow:hidden}
 table{width:100%;border-collapse:collapse;font-size:13px}
@@ -1474,37 +1480,31 @@ function renderTable() {
     return sortAsc ? (va>vb?1:-1) : (va<vb?1:-1);
   });
 
-  // Dynamic user-rating column headers
+  // Dynamic user-rating column headers — just one Avg column now
   const currentId = {{ user.id }};
   const thead = document.querySelector('#reviewed table thead tr');
   thead.innerHTML = `
     <th onclick="sortBy('full_name')">Name</th>
     <th onclick="sortBy('followers')">Followers</th>
-    ${reviewedUsers.map(u=>`<th>${u.name||u.email.split('@')[0]}</th>`).join('')}
-    <th onclick="sortBy('avg_rating')">Avg</th>
+    <th onclick="sortBy('avg_rating')">Rating</th>
     <th>Status</th><th>Notes</th>
     <th onclick="sortBy('score')">Score</th>`;
 
   const tbody = document.getElementById('reviewed-tbody');
   tbody.innerHTML = rows.map(r => {
-    const userCols = reviewedUsers.map(u => {
-      const val = (r.ratings && r.ratings[u.id]) || 0;
-      const isMe = u.id === currentId;
-      const stars = [1,2,3,4,5].map(i=>
-        `<span class="star ${i<=val?'on':''}"
-          ${isMe?`onclick="updateRating('${r.username}',${i})"
-                  onmouseover="hoverStars(this,${i})"
-                  onmouseout="unhoverStars(this,${val})"
-                  style="cursor:pointer"`:''}>
-          ${i<=val?'★':'☆'}</span>`
-      ).join('');
-      return `<td><div class="rating-stars" id="stars-${u.id}-${r.username}">${stars}</div></td>`;
-    }).join('');
+    const avg = r.avg_rating || 0;
+    const avgColor = avg>=4?'#16a34a':avg>=2?'#f59e0b':'#aaa';
+
+    // Build tooltip showing each person's score
+    const tooltipLines = reviewedUsers.map(u => {
+      const val = (r.ratings && r.ratings[u.id]) || null;
+      const name = u.name || u.email.split('@')[0];
+      const stars = val ? '★'.repeat(val) + '☆'.repeat(5-val) : '—';
+      return `${name}: ${stars}`;
+    }).join('&#10;');
 
     const statuses = ['', ...(configData.outreach_statuses || [])];
     const statusOpts = statuses.map(s=>`<option ${r.outreach_status===s?'selected':''}>${s}</option>`).join('');
-    const avg = r.avg_rating || 0;
-    const avgColor = avg>=4?'#16a34a':avg>=2?'#f59e0b':'#aaa';
 
     return `<tr>
       <td>
@@ -1512,8 +1512,17 @@ function renderTable() {
         <a class="t-handle" href="${r.profile_url}" target="_blank">@${r.username}</a>
       </td>
       <td class="t-followers">${fmt(r.followers)}</td>
-      ${userCols}
-      <td style="font-weight:700;color:${avgColor}">${avg}</td>
+      <td>
+        <div class="avg-rating-cell" style="position:relative;display:inline-block">
+          <span style="font-weight:700;color:${avgColor};cursor:default">${avg}</span>
+          <div class="avg-tooltip">${reviewedUsers.map(u => {
+            const val = (r.ratings && r.ratings[u.id]) || null;
+            const name = u.name || u.email.split('@')[0];
+            const stars = val ? '★'.repeat(val) + '☆'.repeat(5-val) : '—';
+            return `<div><span style="color:#ccc;font-size:11px">${name}</span> <span style="color:#fff">${stars}</span></div>`;
+          }).join('')}</div>
+        </div>
+      </td>
       <td class="t-status">
         <select onchange="updateField('${r.username}','outreach_status',this.value)">${statusOpts}</select>
       </td>
