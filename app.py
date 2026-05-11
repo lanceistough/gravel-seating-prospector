@@ -1371,21 +1371,15 @@ async function rate(value) {
   fetch('/api/rate', {method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({username: p.username, rating: value})});
 
+  // Close the current window immediately — must happen inside the click handler
+  closeProfileWindow();
+
   const next = allProspects[current + 1];
-  const dbg = document.getElementById('ig-debug');
   if (next) {
-    const hasRef = !!profileWindow;
-    const isClosed = profileWindow ? profileWindow.closed : 'n/a';
-    if (dbg) dbg.textContent = `rate(${value}): hasRef=${hasRef} closed=${isClosed}`;
-    if (profileWindow && !profileWindow.closed) {
-      profileWindow.location.href = next.profile_url;
-    } else {
-      if (dbg) dbg.textContent += ' → reopening window';
-      const igW=680, igH=window.screen.height, igLeft=window.screen.width-680;
-      profileWindow = window.open(next.profile_url,'gravel_ig',`width=${igW},height=${igH},left=${igLeft},top=0,scrollbars=yes`);
-    }
-  } else {
-    closeProfileWindow();
+    // Open fresh window for next profile — still inside click handler so no popup blocker
+    const igW=680, igH=window.screen.height, igLeft=window.screen.width-680;
+    profileWindow = window.open(next.profile_url, 'gravel_ig',
+      `width=${igW},height=${igH},left=${igLeft},top=0,scrollbars=yes,resizable=yes`);
   }
 
   const card = document.querySelector('.card');
