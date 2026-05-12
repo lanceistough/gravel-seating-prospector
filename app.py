@@ -1448,7 +1448,23 @@ async function rate(value) {
   }
 }
 
-function swipe(dir) { rate(dir==='right' ? 4 : 0); }
+function swipe(dir) {
+  if (dir === 'left') {
+    // X / pass — skip without opening Instagram
+    if (current >= allProspects.length) return;
+    const p = allProspects[current];
+    fetch('/api/rate', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username: p.username, rating: 0})});
+    closeProfileWindow();
+    const card = document.querySelector('.card');
+    if (card) {
+      card.classList.add('fly-left');
+      setTimeout(() => { current++; showCard(true); updateCounter(); }, 280);
+    }
+  } else {
+    rate(4);
+  }
+}
 
 async function excludeAccount() {
   if (current >= allProspects.length) return;
