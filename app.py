@@ -856,7 +856,6 @@ tr:hover td{background:#fafafa}
   </div>
   <div id="card-container" style="display:none"></div>
   <div id="buttons" style="display:none">
-    <button class="btn btn-no" onclick="swipe('left')" title="Pass (0)">❌</button>
     <button onclick="excludeAccount()" title="Brand, event, or not relevant — hide forever"
       style="padding:8px 14px;border:2px solid #e0e0e0;border-radius:20px;
              background:white;font-size:12px;font-weight:600;color:#888;cursor:pointer;
@@ -864,6 +863,7 @@ tr:hover td{background:#fafafa}
              onmouseout="this.style.borderColor='#e0e0e0';this.style.color='#888'">
       🏢 Brand
     </button>
+    <button class="btn btn-no" onclick="swipe('left')" title="Pass (0)">❌</button>
     <div class="btn-divider"></div>
     <button class="rating-btn" onclick="rate(1)">1</button>
     <button class="rating-btn" onclick="rate(2)">2</button>
@@ -1442,7 +1442,7 @@ async function rate(value) {
 
   const card = document.querySelector('.card');
   if (card) {
-    card.classList.add(value >= 3 ? 'fly-right' : 'fly-left');
+    card.classList.add(value >= 1 ? 'fly-right' : 'fly-left');
     setTimeout(() => { current++; showCard(true); updateCounter(); }, 280);
   }
 }
