@@ -1433,11 +1433,10 @@ async function rate(value) {
 
   const next = allProspects[current + 1];
   if (next) {
-    // Omitting features tells the browser to reuse the existing named window.
-    // This works even after Instagram's COOP headers sever our JS reference.
-    window.open(next.profile_url, 'gravel_ig');
+    const igW=680, igH=window.screen.height, igLeft=window.screen.width-680;
+    profileWindow = window.open(next.profile_url, 'gravel_ig',
+      `width=${igW},height=${igH},left=${igLeft},top=0,scrollbars=yes,resizable=yes`);
   } else {
-    // Last profile — close the window
     closeProfileWindow();
   }
 
