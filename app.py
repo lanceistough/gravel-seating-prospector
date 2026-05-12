@@ -857,19 +857,19 @@ tr:hover td{background:#fafafa}
   <div id="card-container" style="display:none"></div>
   <div id="buttons" style="display:none">
     <button class="btn btn-no" onclick="swipe('left')" title="Pass (0)">❌</button>
+    <button onclick="excludeAccount()" title="Brand, event, or not relevant — hide forever"
+      style="padding:8px 14px;border:2px solid #e0e0e0;border-radius:20px;
+             background:white;font-size:12px;font-weight:600;color:#888;cursor:pointer;
+             transition:all .15s" onmouseover="this.style.borderColor='#111';this.style.color='#111'"
+             onmouseout="this.style.borderColor='#e0e0e0';this.style.color='#888'">
+      🏢 Brand
+    </button>
     <div class="btn-divider"></div>
     <button class="rating-btn" onclick="rate(1)">1</button>
     <button class="rating-btn" onclick="rate(2)">2</button>
     <button class="rating-btn" onclick="rate(3)">3</button>
     <button class="rating-btn" onclick="rate(4)">4</button>
     <button class="rating-btn" onclick="rate(5)">5</button>
-    <button onclick="excludeAccount()" title="Brand, event, or not relevant — hide forever"
-      style="margin-left:8px;padding:8px 14px;border:2px solid #e0e0e0;border-radius:20px;
-             background:white;font-size:12px;font-weight:600;color:#888;cursor:pointer;
-             transition:all .15s" onmouseover="this.style.borderColor='#111';this.style.color='#111'"
-             onmouseout="this.style.borderColor='#e0e0e0';this.style.color='#888'">
-      🏢 Brand
-    </button>
   </div>
   <div id="rating-bar" style="display:none"></div>
   <div id="counter" style="display:none"></div>
