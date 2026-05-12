@@ -64,6 +64,7 @@ def init_db():
             score            REAL DEFAULT 0,
             ml_score         REAL DEFAULT 0,
             recent_images    TEXT DEFAULT '[]',
+            excluded         TEXT DEFAULT '',
             created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         CREATE TABLE IF NOT EXISTS ratings (
@@ -121,6 +122,11 @@ def init_db():
             DROP TABLE ratings_old;
         """)
         print("✓ Migration done.")
+    # Add excluded column if missing (existing DBs)
+    pcols = [r[1] for r in db.execute("PRAGMA table_info(prospects)").fetchall()]
+    if "excluded" not in pcols:
+        db.execute("ALTER TABLE prospects ADD COLUMN excluded TEXT DEFAULT ''")
+        print("→ Added excluded column to prospects.")
     db.commit()
     db.close()
 
@@ -214,7 +220,8 @@ def api_prospects():
     rows = db.execute("""
         SELECT p.*
         FROM prospects p
-        WHERE NOT EXISTS (
+        WHERE (p.excluded IS NULL OR p.excluded = '')
+          AND NOT EXISTS (
             SELECT 1 FROM ratings r
             WHERE r.prospect_id = p.id AND r.user_id = ?
         )
@@ -330,6 +337,18 @@ def api_update_row():
             ON CONFLICT(prospect_id) DO UPDATE SET
               {field}=excluded.{field}, updated_at=CURRENT_TIMESTAMP
         """, [prospect["id"], value])
+    db.commit()
+    return jsonify({"ok": True})
+
+@app.route("/api/exclude", methods=["POST"])
+@login_required
+def api_exclude():
+    """Mark a prospect as excluded (brand/event/not relevant) — hidden from all queues."""
+    data     = request.json
+    username = data.get("username")
+    reason   = data.get("reason", "brand")
+    db = get_db()
+    db.execute("UPDATE prospects SET excluded=? WHERE username=?", [reason, username])
     db.commit()
     return jsonify({"ok": True})
 
@@ -844,6 +863,13 @@ tr:hover td{background:#fafafa}
     <button class="rating-btn" onclick="rate(3)">3</button>
     <button class="rating-btn" onclick="rate(4)">4</button>
     <button class="rating-btn" onclick="rate(5)">5</button>
+    <button onclick="excludeAccount()" title="Brand, event, or not relevant — hide forever"
+      style="margin-left:8px;padding:8px 14px;border:2px solid #e0e0e0;border-radius:20px;
+             background:white;font-size:12px;font-weight:600;color:#888;cursor:pointer;
+             transition:all .15s" onmouseover="this.style.borderColor='#111';this.style.color='#111'"
+             onmouseout="this.style.borderColor='#e0e0e0';this.style.color='#888'">
+      🏢 Brand
+    </button>
   </div>
   <div id="rating-bar" style="display:none"></div>
   <div id="counter" style="display:none"></div>
@@ -1423,6 +1449,19 @@ async function rate(value) {
 }
 
 function swipe(dir) { rate(dir==='right' ? 4 : 0); }
+
+async function excludeAccount() {
+  if (current >= allProspects.length) return;
+  const p = allProspects[current];
+  fetch('/api/exclude', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({username: p.username, reason: 'brand'})});
+  closeProfileWindow();
+  const card = document.querySelector('.card');
+  if (card) {
+    card.classList.add('fly-left');
+    setTimeout(() => { current++; showCard(false); updateCounter(); }, 280);
+  }
+}
 
 document.addEventListener('keydown', e => {
   if (['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return;
