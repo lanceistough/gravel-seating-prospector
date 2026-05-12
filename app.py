@@ -1553,7 +1553,7 @@ function renderTable() {
     <th onclick="sortBy('followers')">Followers</th>
     <th onclick="sortBy('avg_rating')">Rating</th>
     <th>Status</th><th>Notes</th>
-    <th onclick="sortBy('score')">Score</th>`;
+    <th onclick="sortBy('score')">Score</th><th></th>`;
 
   const tbody = document.getElementById('reviewed-tbody');
   tbody.innerHTML = rows.map(r => {
@@ -1591,8 +1591,24 @@ function renderTable() {
           onkeydown="if(event.key==='Enter')this.blur()">
       </td>
       <td style="color:#888">${r.score||0}</td>
+      <td>
+        <button onclick="excludeFromReviewed('${r.username}')"
+          style="padding:4px 10px;border:1.5px solid #e0e0e0;border-radius:12px;background:white;
+                 font-size:11px;font-weight:600;color:#aaa;cursor:pointer;white-space:nowrap"
+          onmouseover="this.style.borderColor='#111';this.style.color='#111'"
+          onmouseout="this.style.borderColor='#e0e0e0';this.style.color='#aaa'"
+          title="Mark as brand/not relevant — removes from all queues">🏢 Brand</button>
+      </td>
     </tr>`;
   }).join('');
+}
+
+async function excludeFromReviewed(username) {
+  if (!confirm(`Mark @${username} as a brand and remove from all queues?`)) return;
+  await fetch('/api/exclude', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({username, reason: 'brand'})});
+  reviewedData = reviewedData.filter(r => r.username !== username);
+  renderTable();
 }
 
 function updateField(username, field, value) {
