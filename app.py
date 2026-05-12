@@ -496,6 +496,36 @@ def admin_import_db():
     return "<h2 style='font-family:sans-serif;padding:40px'>✅ Database uploaded! <a href='/'>Go to app</a></h2>"
 
 
+@app.route("/admin/reset-password", methods=["GET","POST"])
+def admin_reset_password():
+    secret = os.environ.get("IMPORT_SECRET", "")
+    if not secret:
+        return "IMPORT_SECRET not set", 403
+    style = "font-family:sans-serif;padding:40px"
+    if request.method == "GET":
+        return f'''<html><body style="{style}">
+            <h2>Reset Password</h2>
+            <form method="post">
+                <input name="secret" type="password" placeholder="Admin secret" style="padding:8px;margin-bottom:12px;display:block;width:300px"><br>
+                <input name="email" type="email" placeholder="Email address" style="padding:8px;margin-bottom:12px;display:block;width:300px"><br>
+                <input name="password" type="password" placeholder="New password" style="padding:8px;margin-bottom:12px;display:block;width:300px"><br>
+                <button type="submit" style="padding:10px 24px;background:#111;color:white;border:none;border-radius:6px;cursor:pointer">Reset Password</button>
+            </form></body></html>'''
+    if request.form.get("secret") != secret:
+        return "Wrong secret", 403
+    email = request.form.get("email","").strip().lower()
+    pw    = request.form.get("password","")
+    db = get_db()
+    user = db.execute("SELECT id FROM users WHERE email=?", [email]).fetchone()
+    if not user:
+        # Create the user if they don't exist
+        db.execute("INSERT INTO users (email, password_hash) VALUES (?,?)", [email, hash_pw(pw)])
+    else:
+        db.execute("UPDATE users SET password_hash=? WHERE email=?", [hash_pw(pw), email])
+    db.commit()
+    return f"<h2 style='{style}'>✅ Password set for {email}. <a href='/login'>Go to login</a></h2>"
+
+
 # ── HTML Templates ─────────────────────────────────────────────────────────────
 
 INVITE_HTML = """<!DOCTYPE html>
