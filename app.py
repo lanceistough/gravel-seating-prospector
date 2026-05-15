@@ -251,6 +251,7 @@ def api_reviewed():
             JOIN prospects p ON p.id = r.prospect_id
             LEFT JOIN prospect_meta m ON m.prospect_id = r.prospect_id
             WHERE r.rating IS NOT NULL AND r.rating > 0
+              AND (p.excluded IS NULL OR p.excluded = '')
             ORDER BY p.username
         """).fetchall()
 
